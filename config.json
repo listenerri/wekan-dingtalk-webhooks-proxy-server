@@ -1,0 +1,8 @@
+DB_Info = {
+    "host" : '192.168.1.77',
+    "user" : 'user_name',
+    "password" : 'user_password',
+    "port" : 9000
+}
+
+Collectors = ["rrc11_cluster", "rrc03_cluster"]
