@@ -1,0 +1,22 @@
+{
+    "mongo-db-config" : {
+        "connect-uri" : "mongodb://127.0.0.1:27017/",
+        "db-name" : "wekan",
+        "table-activities" : "activities",
+        "table-boards" : "boards",
+        "table-card-comments" : "card-comments",
+        "table-cards" : "cards",
+        "table-checklistItems" : "checklistItems",
+        "table-checklists" : "checklists",
+        "table-lists" : "lists",
+        "table-swimlanes" : "swimlanes",
+        "table-users" : "users"
+    },
+    "boards-2-dingtalk-webhook" : {
+        "board_name" : "webhook address of dingtalk",
+        "*" : "all message will be sent to this webhook if has *"
+    },
+    "only-handle-actions" : [
+        "leave this empty means handle all actions"
+    ]
+}
