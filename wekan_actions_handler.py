@@ -6,6 +6,12 @@
 __Common_Header = ""
 __Common_Tail = ""
 
+__logger = None
+
+def setup_logger(logger):
+    global __logger
+    __logger = logger
+
 __Action_2_Delivery_Temp = {
     "act-addAttachment": "{user} 添加了附件\n看板：{board}\n列表：{list}\n任务：{card}",
     "act-deleteAttachment": "{user} 移除了附件\n看板：{board}\n列表：{list}\n任务：{card}",
@@ -52,9 +58,66 @@ __Action_2_Delivery_Temp = {
     "act-duenow": "{user} 任务到期提醒\n看板：{board}\n列表：{list}\n任务：{card}"
 }
 
-__Action_2_Handler = {
+def __common_handler(wekan_json_data):
+    action = wekan_json_data["description"]
+    if action not in __Action_2_Delivery_Temp:
+        __logger.error("Not found the delivery template for action: {}".format(wekan_json_data))
+        return None
+    delivery_temp = __Action_2_Delivery_Temp[action]
+    return delivery_temp
 
+__Action_2_Handler = {
+    "act-addAttachment": __common_handler,
+    "act-deleteAttachment": __common_handler,
+    "act-addSubtask": __common_handler,
+    "act-addedLabel": __common_handler,
+    "act-removedLabel": __common_handler,
+    "act-addChecklist": __common_handler,
+    "act-addChecklistItem": __common_handler,
+    "act-removeChecklist": __common_handler,
+    "act-removeChecklistItem": __common_handler,
+    "act-checkedItem": __common_handler,
+    "act-uncheckedItem": __common_handler,
+    "act-completeChecklist": __common_handler,
+    "act-uncompleteChecklist": __common_handler,
+    "act-addComment": __common_handler,
+    "act-editComment": __common_handler,
+    "act-deleteComment": __common_handler,
+    "act-createBoard": __common_handler,
+    "act-createSwimlane": __common_handler,
+    "act-createCard": __common_handler,
+    "act-createCustomField": __common_handler,
+    "act-deleteCustomField": __common_handler,
+    "act-setCustomField": __common_handler,
+    "act-createList": __common_handler,
+    "act-addBoardMember": __common_handler,
+    "act-archivedBoard": __common_handler,
+    "act-archivedCard": __common_handler,
+    "act-archivedList": __common_handler,
+    "act-archivedSwimlane": __common_handler,
+    "act-joinMember": __common_handler,
+    "act-moveCard": __common_handler,
+    "act-moveCardToOtherBoard": __common_handler,
+    "act-removeBoardMember": __common_handler,
+    "act-restoredCard": __common_handler,
+    "act-unjoinMember": __common_handler,
+    "act-a-dueAt": __common_handler,
+    "act-a-endAt": __common_handler,
+    "act-a-startAt": __common_handler,
+    "act-a-receivedAt": __common_handler,
+    "act-newDue": __common_handler,
+    "act-withDue": __common_handler,
+    "act-almostdue": __common_handler,
+    "act-pastdue": __common_handler,
+    "act-duenow": __common_handler,
 }
 
-def get_delivery(wekan_action):
-    pass
+def get_delivery(wekan_json_data):
+    for k, v in wekan_json_data.items():
+        print(k, ":", v)
+    action = wekan_json_data["description"]
+    if action not in __Action_2_Handler:
+        __logger.error("Not found the handler for action: {}".format(action))
+        return None
+    handler = __Action_2_Handler[action]
+    return handler(wekan_json_data)
