@@ -1,6 +1,8 @@
 {
     "wekan-username" : {
         "dingtalk-username" : "name",
-        "phone-number" : "tel"
+        "phone-number" : "tel",
+        "admin" : true,
+        "desc" : "admin user will recieve some special messages"
     }
 }
