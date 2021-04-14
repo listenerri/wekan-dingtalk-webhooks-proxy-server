@@ -12,6 +12,8 @@
         "table-swimlanes" : "swimlanes",
         "table-users" : "users"
     },
+    "common-delivery-header" : "",
+    "common-delivery-tail" : "",
     "boards-2-dingtalk-webhook" : {
         "board_name" : "webhook address of dingtalk",
         "*" : "all message will be sent to this webhook if has *"

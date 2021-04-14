@@ -17,11 +17,10 @@ def setup_logger(logger):
 
 def init_db():
     global __DB_Client
-    server_config = configs.server_config()
     count = 0
     while True:
         try:
-            __DB_Client = pymongo.MongoClient(server_config["mongo-db-config"]["connect-uri"], connect=True)
+            __DB_Client = pymongo.MongoClient(configs.get_mongo_db_config()["connect-uri"], connect=True)
             break
         except Exception as e:
             count += 1
@@ -29,5 +28,5 @@ def init_db():
             time.sleep(1)
     __logger.info("Connect to mongo db successed")
 
-def mongo_db_client():
+def get_mongo_db_client():
     return __DB_Client

@@ -51,11 +51,26 @@ def reload_account_config():
             __Admin_Accounts[wekan_user] = user_info
     return True
 
-def server_config():
+def get_server_config():
     return __Server_Config
 
-def account_config():
+def get_mongo_db_config():
+    return __Server_Config.get("mongo-db-config", None)
+
+def get_common_delivery_header():
+    return __Server_Config.get("common-delivery-header", "")
+
+def get_common_delivery_tail():
+    return __Server_Config.get("common-delivery-tail", "")
+
+def get_boards_2_dingtalk_webhook():
+    return __Server_Config.get("boards-2-dingtalk-webhook", None)
+
+def get_only_handle_actions():
+    return __Server_Config.get("only-handle-actions", None)
+
+def get_account_config():
     return __Account_Config
 
-def admin_accounts():
+def get_admin_accounts():
     return __Admin_Accounts
