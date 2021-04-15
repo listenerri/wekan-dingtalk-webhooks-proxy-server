@@ -74,3 +74,19 @@ def get_account_config():
 
 def get_admin_accounts():
     return __Admin_Accounts
+
+def get_dingtalk_user_info_by_wekan_user_id(wekan_user_id):
+    wekan_user_name = mongo_db_utils.get_wekan_user_name_by_id(wekan_user_id)
+    return __Account_Config.get(wekan_user_name, None)
+
+def get_dingtalk_user_name_by_wekan_user_id(wekan_user_id):
+    dingtalk_user_info = get_dingtalk_user_info_by_wekan_user_id(wekan_user_id)
+    if dingtalk_user_info is None:
+        return None
+    return dingtalk_user_info.get("dingtalk-username", None)
+
+def get_dingtalk_phone_number_by_wekan_user_id(wekan_user_id):
+    dingtalk_user_info = get_dingtalk_user_info_by_wekan_user_id(wekan_user_id)
+    if dingtalk_user_info is None:
+        return None
+    return dingtalk_user_info.get("phone-number", None)

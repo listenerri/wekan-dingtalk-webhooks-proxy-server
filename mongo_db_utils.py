@@ -30,3 +30,18 @@ def init_db():
 
 def get_mongo_db_client():
     return __DB_Client
+
+def get_wekan_user_name_by_id(wekan_user_id):
+    if wekan_user_id is None:
+        return None
+    result = __DB_Client.wekan.users.find_one({"_id":wekan_user_id}, {"_id":0, "username":1})
+    if result is None:
+        return None
+    return result.get("username", None)
+
+def get_board_title_by_id(board_id):
+    board_title = None
+    if board_id is not None:
+        result = __DB_Client.wekan.boards.find_one({"_id":board_id}, {"_id":0, "title":1})
+        if result is not None:
+            board_title = result.get("title", None)

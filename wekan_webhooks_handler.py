@@ -131,23 +131,6 @@ def __send_dingtalk_webhook_worker():
         print("!!!!!!!!!!!!!!!!!!!!!!!!new task to do: ", delivery)
         print("!!!!!!!!!!!!!!!!!!!!!!!!new task to do: ", webhook)
 
-def __get_dingtalk_user_info(wekan_user_name):
-    if wekan_user_name is None:
-        return None
-    pass
-
-def __get_user_nam(user_id):
-    db_client = mongo_db_utils.get_mongo_db_client()
-    if user_id is None:
-        return None
-    result = db_client.wekan.users.find_one({"_id":user_id}, {"_id":0, "username":1})
-    if result is None:
-        return None
-    user_name = result.get("username", None)
-    if user_name is None:
-        return None
-    dingtalk_userinfo = configs.get_account_config().get(user_name, None)
-
 def __common_handler(wekan_json_data):
     action = wekan_json_data["activityType"]
     if action not in __Action_2_Delivery_Template:
@@ -158,13 +141,8 @@ def __common_handler(wekan_json_data):
     delivery_temp = __Action_2_Delivery_Template[action]
     db_client = mongo_db_utils.get_mongo_db_client()
 
-    user_id = wekan_json_data.get("userId", None)
-    user_name = ""
-    if user_id is not None:
-        result = db_client.wekan.users.find_one({"_id":user_id}, {"_id":0, "username":1})
-        if result is not None:
-            user_name = result.get("username", "")
-            dingtalk_userinfo = configs.get_account_config().get(user_name, user_name)
+    wekan_user_id = wekan_json_data.get("userId", None)
+    dingtalk_user_name = configs.get_dingtalk_user_name_by_wekan_user_id(wekan_user_id)
 
     board_id = wekan_json_data.get("boardId", None)
     board_title = None
@@ -192,7 +170,7 @@ def __common_handler(wekan_json_data):
                 if len(card_title) > 60:
                     card_title = card_title[0:60] + "..."
             card_members = result.get("members", None)
-    delivery = delivery_temp.format(user=user_name, board=board_title, list=list_title, card=card_title)
+    delivery = delivery_temp.format(user=dingtalk_user_name, board=board_title, list=list_title, card=card_title)
     # __build_dingtalk_text_webhook_data(delivery, )
     return delivery
 
