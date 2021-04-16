@@ -1,6 +1,6 @@
 {
     "mongo-db-config" : {
-        "connect-uri" : "mongodb://127.0.0.1:27017/",
+        "connect-uri" : "mongodb://wekandb:27017/",
         "db-name" : "wekan",
         "table-activities" : "activities",
         "table-boards" : "boards",
