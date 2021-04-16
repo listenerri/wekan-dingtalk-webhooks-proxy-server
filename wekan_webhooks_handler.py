@@ -3,13 +3,17 @@
 # author = listenerri
 # maintainer = listenerri
 
+import json
+import time
 import configs
 import queue
 import threading
 import mongo_db_utils
 
+from urllib import request
+
 __logger = None
-__delivery_queue = queue.Queue()
+__activity_queue = queue.Queue()
 __worker_thread = None
 
 __Action_2_Handler = {}
@@ -65,155 +69,153 @@ __Action_2_Delivery_Template = {
 
 def init_handler(logger):
     global __logger
-    __logger = logger
+    global __worker_thread
 
-    __worker_thread = threading.Thread(target=__send_dingtalk_webhook_worker, daemon=True)
+    __logger = logger
+    __worker_thread = threading.Thread(target=__handle_activity_worker, daemon=True)
     __worker_thread.start()
 
     __Action_2_Handler.clear()
     for action in __Action_2_Delivery_Template.keys():
         __Action_2_Handler[action] = __common_handler
 
-def __build_dingtalk_text_webhook_data(delivery, atMobiles):
-    data_temp = """
-        {
+def __build_dingtalk_text_webhook_data(delivery, at_mobiles):
+    if delivery is None:
+        return None
+    data_temp = {
             "msgtype": "text",
             "text": {
-                "content": "{}"
+                "content": None
             },
             "at": {
-                "isAtAll": false,
-                "atMobiles": [{}]
+                "isAtAll": False,
+                "atMobiles": None
             }
         }
-        """
     delivery = "{}{}{}".format(configs.get_common_delivery_header(), delivery, configs.get_common_delivery_tail())
     at_content_part = ""
-    for tel in atMobiles:
+    for tel in at_mobiles:
         at_content_part += "@{} ".format(tel)
     if len(at_content_part) != 0:
         delivery += "\n{}".format(at_content_part)
-    atMobiles_str = ""
-    if atMobiles is not None and len(atMobiles) > 0:
-        atMobiles_str = ",".join(list(atMobiles))
-    data = data_temp.format(delivery, atMobiles_str)
+    data_temp["text"]["content"] = delivery
+    data_temp["at"]["atMobiles"] = list(at_mobiles)
+    data = json.dumps(data_temp, ensure_ascii=False)
     return data
 
 def __send_special_webhook(msg):
     if len(configs.get_admin_accounts()) == 0:
         return
-    if configs.get_boards_2_dingtalk_webhook() is None:
-        return
     boards_2_dingtalk_webhook = configs.get_boards_2_dingtalk_webhook()
     if boards_2_dingtalk_webhook is None or "*" not in boards_2_dingtalk_webhook:
         __logger.warn("Not found * item in boards-2-dingtalk-webhook config, can not send special webhook")
         return
-    tels = set()
+    phones = set()
     for _, user_info in configs.get_admin_accounts().items():
         tel = user_info["phone-number"]
         if len(tel) != 0:
             continue
-        tels.add(tel)
-    if len(tels) == 0:
+        phones.add(tel)
+    if len(phones) == 0:
         return
-    delivery = __build_dingtalk_text_webhook_data(msg, tels)
+    delivery = __build_dingtalk_text_webhook_data(msg, phones)
     webhook = boards_2_dingtalk_webhook["*"]
-    __queue_tasks(delivery, webhook)
+    __send_dingtalk_webhook(delivery, webhook)
 
-def __queue_tasks(delivery, webhook):
-    data = (delivery, webhook)
-    __delivery_queue.put(data)
+def __send_dingtalk_webhook(delivery, webhook):
+    __logger.debug("##################### send webhook start")
+    __logger.debug(delivery)
+    __logger.debug(webhook)
+    req = request.Request(webhook, data=bytes(delivery, encoding="UTF-8"))
+    req.add_header("Content-Type", "application/json")
+    res = request.urlopen(req)
+    __logger.debug((res.status, res.reason, res.read()))
+    __logger.debug("##################### send webhook end\n\n\n")
 
-def __send_dingtalk_webhook_worker():
-    while True:
-        delivery, webhook = __delivery_queue.get(block=True)
-        # TODO(ri): send webhook
-        print("!!!!!!!!!!!!!!!!!!!!!!!!new task to do: ", delivery)
-        print("!!!!!!!!!!!!!!!!!!!!!!!!new task to do: ", webhook)
-
-def __common_handler(wekan_json_data):
-    action = wekan_json_data["activityType"]
+def __common_handler(activity_data):
+    action = activity_data["activityType"]
     if action not in __Action_2_Delivery_Template:
-        msg = "Not found the delivery template for action: {}".format(wekan_json_data)
+        msg = "Not found the delivery template for action: {}".format(activity_data)
         __logger.error(msg)
         __send_special_webhook(msg)
         return None
     delivery_temp = __Action_2_Delivery_Template[action]
-    db_client = mongo_db_utils.get_mongo_db_client()
 
-    wekan_user_id = wekan_json_data.get("userId", None)
+    wekan_user_id = activity_data.get("userId", None)
     dingtalk_user_name = configs.get_dingtalk_user_name_by_wekan_user_id(wekan_user_id)
 
-    board_id = wekan_json_data.get("boardId", None)
-    board_title = None
-    if board_id is not None:
-        result = db_client.wekan.boards.find_one({"_id":board_id}, {"_id":0, "title":1})
-        if result is not None:
-            board_title = result.get("title", None)
+    board_id = activity_data.get("boardId", None)
+    board_title = mongo_db_utils.get_board_title_by_id(board_id)
 
-    list_id = wekan_json_data.get("listId", None)
-    list_title = None
-    if list_id is not None:
-        result = db_client.wekan.lists.find_one({"_id":list_id}, {"_id":0, "title":1})
-        if result is not None:
-            list_title = result.get("title", None)
+    list_id = activity_data.get("listId", None)
+    list_title = mongo_db_utils.get_list_title_by_id(list_id)
 
-    card_id = wekan_json_data.get("cardId", None)
-    card_title = None
-    card_members = None
-    if card_id is not None:
-        result = db_client.wekan.cards.find_one({"_id":card_id}, {"_id":0, "title":1, "members":1})
-        if result is not None:
-            card_title = result.get("title", None)
-            if card_title is not None:
-                card_title = card_title.replace("\n", " ")
-                if len(card_title) > 60:
-                    card_title = card_title[0:60] + "..."
-            card_members = result.get("members", None)
+    card_id = activity_data.get("cardId", None)
+    card_title = mongo_db_utils.get_card_title_by_id(card_id)
+
     delivery = delivery_temp.format(user=dingtalk_user_name, board=board_title, list=list_title, card=card_title)
-    # __build_dingtalk_text_webhook_data(delivery, )
+
+    at_mobiles = set()
+    card_members = mongo_db_utils.get_card_members_by_id(card_id)
+    if card_members is not None:
+        for user_id in card_members:
+            phone = configs.get_dingtalk_phone_number_by_wekan_user_id(user_id)
+            if phone is None:
+                continue
+            at_mobiles.add(phone)
+    card_creator_id = mongo_db_utils.get_card_creator_by_id(card_id)
+    if card_creator_id is not None:
+        phone = configs.get_dingtalk_phone_number_by_wekan_user_id(card_creator_id)
+        if phone is not None:
+            at_mobiles.add(phone)
+    delivery = __build_dingtalk_text_webhook_data(delivery, at_mobiles)
     return delivery
 
-def __get_webhooks(wekan_json_data):
+def __get_webhooks_url(activity_data):
     webhooks = []
     boards_2_dingtalk_webhook = configs.get_boards_2_dingtalk_webhook()
     if boards_2_dingtalk_webhook is None:
         return webhooks
     if "*" in boards_2_dingtalk_webhook:
         webhooks.append(boards_2_dingtalk_webhook["*"])
-    board_id = wekan_json_data.get("boardId", None)
-    if board_id is not None:
-        db_client = mongo_db_utils.get_mongo_db_client()
-        result = db_client.wekan.boards.find_one({"_id":board_id}, {"title":1})
-        board_name = result.get("title", None)
-        if board_name in boards_2_dingtalk_webhook:
-            webhooks.append(boards_2_dingtalk_webhook[board_name])
+    board_id = activity_data.get("boardId", None)
+    board_name = mongo_db_utils.get_board_title_by_id(board_id)
+    if board_name in boards_2_dingtalk_webhook:
+        webhooks.append(boards_2_dingtalk_webhook[board_name])
     if len(webhooks) == 0:
-        msg = "Not found the webhook for request: {}".format(wekan_json_data)
+        msg = "Not found the webhook for request: {}".format(activity_data)
         __logger.error(msg)
         __send_special_webhook(msg)
     return webhooks
 
-def handle_activity(activity_json_data):
-    action = activity_json_data["activityType"]
-    if action not in __Action_2_Handler:
-        msg = "Not found the handler for action: {}".format(action)
-        __logger.error(msg)
-        __send_special_webhook(msg)
-        return False
+def __handle_activity_worker():
+    while True:
+        activity_data = __activity_queue.get(block=True)
+        # The data in the database does not seem to have been modified when the Kanban sends webhooks,
+        # here is a delayed processing
+        time.sleep(2)
+        action = activity_data["activityType"]
+        if action not in __Action_2_Handler:
+            msg = "Not found the handler for action: {}".format(action)
+            __logger.error(msg)
+            __send_special_webhook(msg)
+            continue
 
-    only_handle_actions = configs.get_only_handle_actions()
-    if only_handle_actions is not None and len(only_handle_actions) > 0 and action not in only_handle_actions:
-        __logger.info("Ignore action: {} because it not in only handle actions list".format(action))
-        return True
+        only_handle_actions = configs.get_only_handle_actions()
+        if only_handle_actions is not None and len(only_handle_actions) > 0 and action not in only_handle_actions:
+            __logger.info("Ignore action: {} because it not in only handle actions list".format(action))
+            continue
 
-    handler_func = __Action_2_Handler[action]
-    delivery = handler_func(activity_json_data)
-    if delivery is None:
-        return False
-    webhooks = __get_webhooks(activity_json_data)
-    if len(webhooks) == 0:
-        return False
-    for webhook in webhooks:
-        __queue_tasks(delivery, webhook)
-    return True
+        handler_func = __Action_2_Handler[action]
+        delivery = handler_func(activity_data)
+        if delivery is None:
+            continue
+        webhooks = __get_webhooks_url(activity_data)
+        if len(webhooks) == 0:
+            continue
+        for webhook in webhooks:
+            __send_dingtalk_webhook(delivery, webhook)
+        continue
+
+def handle_activity(activity_data):
+    __activity_queue.put(activity_data)

@@ -3,8 +3,6 @@
 # author = listenerri
 # maintainer = listenerri
 
-import datetime
-import pymongo
 import configs
 import wekan_webhooks_handler
 import mongo_db_utils
@@ -32,12 +30,17 @@ def reload_account_config():
 def wekan_webhook():
     global __latest_activity_ts
     logger.info("Accepted a webhook")
-    result = mongo_db_utils.get_mongo_db_client().wekan.activities.find(
-        {"modifiedAt":{"$gt":__latest_activity_ts}}).sort("modifiedAt", pymongo.ASCENDING)
-    for row in result:
-        print("##################### activity: ", row)
-        __latest_activity_ts = row["modifiedAt"]
-        wekan_webhooks_handler.handle_activity(row)
+    result = mongo_db_utils.get_newer_activity(__latest_activity_ts)
+    if result is None:
+        logger.error("Not found newer activity")
+    else:
+        for row in result:
+            logger.debug("##################### activity content start")
+            for k, v in row.items():
+                logger.debug("{} {} {}".format(k, ":", v))
+            logger.debug("##################### activity content end")
+            __latest_activity_ts = row["modifiedAt"]
+            wekan_webhooks_handler.handle_activity(row)
     return ("done")
 
 def init_app():
@@ -52,12 +55,7 @@ def init_app():
         exit(255)
 
     # init local ts flag
-    result = mongo_db_utils.get_mongo_db_client().wekan.activities.find(
-        {}, {"modifiedAt":1}).sort("modifiedAt", pymongo.DESCENDING).limit(1)
-    for row in result:
-        __latest_activity_ts = row["modifiedAt"]
-    if __latest_activity_ts is None:
-        __latest_activity_ts = datetime.datetime.utcnow()
+    __latest_activity_ts = mongo_db_utils.get_latest_activity_ts()
 
 init_app()
 
