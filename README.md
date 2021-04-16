@@ -16,6 +16,10 @@ cp -i config/config-account-example.json config/config-account.json
 After editing the configuration files, execute the following command to start the service:
 
 ```
+virtualenv -p python3 venv
+source venv/bin/activite
+pip install -r requirements.txt
+deactivate
 ./scripts/start-aspath-uwsgi-server.sh
 ```
 
