@@ -1,6 +1,6 @@
 FROM python:3.5
 
-WORKDIR /opt/ipwave-aspath-api
+WORKDIR /opt/wekan-dingtalk-webhooks-proxy-server
 
 COPY . .
 
