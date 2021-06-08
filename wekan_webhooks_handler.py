@@ -13,6 +13,7 @@ import configs
 from utils import mongo_db_utils
 from utils import dingtalk_webhook_utils
 from handlers import common_handler
+from handlers import comment_add_edit_handler
 
 __logger = None
 __activity_queue = queue.Queue()
@@ -30,6 +31,9 @@ def init_handler(logger):
 
     __Action_2_Handler.clear()
     for action in delivery_templates.Action_2_Delivery_Template.keys():
+        if action == "addComment" or action == "editComment":
+            __Action_2_Handler[action] = comment_add_edit_handler.comment_add_edit_handler
+            continue
         __Action_2_Handler[action] = common_handler.common_handler
 
 def __get_webhooks_url(activity_data):

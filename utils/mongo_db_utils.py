@@ -95,3 +95,11 @@ def get_card_creator_by_id(card_id):
     if result is None:
         return None
     return result.get("userId", None)
+
+def get_comment_by_id(comment_id):
+    if comment_id is None:
+        return None
+    result = __DB_Client.wekan.card_comments.find_one({"_id":comment_id}, {"_id":0, "text":1})
+    if result is None:
+        return None
+    return result.get("text", None)
