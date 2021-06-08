@@ -9,7 +9,7 @@ import mongo_db_utils
 from flask import Flask, escape, request, abort, Response
 
 app = Flask(__name__)
-app.debug = 1
+app.debug = True
 logger = app.logger
 
 __latest_activity_ts = None
