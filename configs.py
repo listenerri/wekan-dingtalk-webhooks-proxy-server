@@ -5,7 +5,8 @@
 
 import os
 import json
-import mongo_db_utils
+
+from utils import mongo_db_utils
 
 __Server_Config_File_Path = "config/config-server.json"
 __Account_Config_File_Path = "config/config-account.json"

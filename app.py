@@ -5,8 +5,10 @@
 
 import configs
 import wekan_webhooks_handler
-import mongo_db_utils
+
 from flask import Flask, escape, request, abort, Response
+
+from utils import mongo_db_utils
 
 app = Flask(__name__)
 app.debug = True
