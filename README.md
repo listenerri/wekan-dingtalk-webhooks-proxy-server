@@ -20,7 +20,7 @@ virtualenv -p python3 venv
 source venv/bin/activite
 pip install -r requirements.txt
 deactivate
-./scripts/start-aspath-uwsgi-server.sh
+./scripts/start-uwsgi-server.sh
 ```
 
 Or start the service in docker:

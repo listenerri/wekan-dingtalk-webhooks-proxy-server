@@ -5,8 +5,8 @@ if [[ -e venv/bin/activate ]]; then
     source venv/bin/activate
 fi
 
-if [[ -e /tmp/aspath-uwsgi-server.pid ]]; then
-    uwsgi --stop /tmp/aspath-uwsgi-server.pid
+if [[ -e /tmp/uwsgi-server.pid ]]; then
+    uwsgi --stop /tmp/uwsgi-server.pid
 else
     echo "Error: not find uwsgi pid file"
     exit 255
