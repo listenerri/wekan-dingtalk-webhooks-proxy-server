@@ -1,4 +1,4 @@
-FROM python:3.5
+FROM python:3.10
 
 WORKDIR /opt/wekan-dingtalk-webhooks-proxy-server
 
